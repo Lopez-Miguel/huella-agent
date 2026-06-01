@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nueva Ficha — MortaGym</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Madurai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --cp:#0093D8; --cs:#A54E9E; --ct:#F2D5F8; --bg:#f4f6f8; }
+*,body { font-family:'Hind Madurai',sans-serif; box-sizing:border-box; }
+body { background:var(--bg); margin:0; }
+
+.admin-layout { display:flex; min-height:100vh; }
+.admin-sidebar { position:fixed;left:0;top:0;height:100vh;width:256px;background:#212529;border-right:1px solid #2d3238;transition:width .28s;z-index:1200;overflow:hidden; }
+.admin-sidebar.collapsed { width:70px; }
+.sb-inner { height:100%;padding:1rem;position:relative; }
+.sb-collapse-btn { position:absolute;top:12px;right:-18px;width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid #ddd;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10; }
+.sb-brand { display:flex;align-items:center;gap:10px;margin-top:1.2rem;padding-left:4px; }
+.sb-brand i { font-size:1.6rem;color:var(--cp);flex-shrink:0; }
+.sb-brand span { color:#fff;font-weight:700;font-size:1.1rem;white-space:nowrap; }
+.sb-role { color:rgba(255,255,255,.45);font-size:.72rem;padding-left:4px;margin-top:2px;white-space:nowrap; }
+.admin-sidebar.collapsed .sb-hide { display:none; }
+.sb-menu { display:flex;flex-direction:column;gap:4px;margin-top:2rem; }
+.sb-item { display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;color:rgba(255,255,255,.65);text-decoration:none;transition:all .18s;white-space:nowrap; }
+.sb-item:hover { color:#fff;background:rgba(255,255,255,.08); }
+.sb-item.active { background:#ede7f6;color:var(--cs)!important;font-weight:600; }
+.sb-item i { font-size:1.2rem;flex-shrink:0; }
+.admin-sidebar.collapsed .sb-item { justify-content:center; }
+.admin-content { margin-left:256px;padding:2rem;width:calc(100% - 256px);transition:margin-left .28s,width .28s;min-height:100vh; }
+.admin-content.collapsed { margin-left:70px;width:calc(100% - 70px); }
+
+.titulo-pagina { background:linear-gradient(90deg,var(--cp) 0%,var(--cs) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;display:inline-block; }
+.section-badge { display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--cp);border-bottom:2px solid var(--cp);padding-bottom:3px;margin-bottom:1rem; }
+
+.form-label { font-weight:500;font-size:.88rem;color:#3a3a3a;margin-bottom:.25rem; }
+.form-control:focus,.form-select:focus { border-color:var(--cp);box-shadow:0 0 0 .18rem rgba(0,147,216,.18); }
+
+.check-group { background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:8px 10px; }
+.check-group .form-check-input:checked { background-color:var(--cp);border-color:var(--cp); }
+.check-detail { display:none;margin-top:6px; }
+.check-detail.show { display:block; }
+
+.btn-mg-primary { background:var(--cp);color:#fff;font-weight:600;border:none;border-radius:6px;padding:.5rem 1.3rem;transition:background .2s;display:inline-flex;align-items:center;gap:6px; }
+.btn-mg-primary:hover { background:var(--cs);color:#fff; }
+.btn-mg-secondary { background:var(--ct);color:#333;font-weight:600;border:none;border-radius:6px;padding:.5rem 1.3rem;transition:background .2s;display:inline-flex;align-items:center;gap:6px; }
+.btn-mg-secondary:hover { background:#e0bfed; }
+.btn-huella-ok { background:#198754!important;pointer-events:none; }
+
+.huella-pill { display:inline-flex;align-items:center;gap:8px;background:#f0f0f0;border-radius:8px;padding:7px 14px;font-size:.88rem;color:#6c757d;border:1px solid #dee2e6;transition:all .3s; }
+.huella-pill.ok { background:#d1e7dd;border-color:#a3cfbb;color:#146c43; }
+
+/* Modal enrollment */
+.step-ring { width:58px;height:58px;border-radius:50%;border:2.5px solid #dee2e6;background:#f8f9fa;display:flex;align-items:center;justify-content:center;font-size:1.25rem;position:relative;transition:all .3s;flex-shrink:0; }
+.step-ring.active { border-color:var(--cp);animation:rpulse 1.4s infinite; }
+.step-ring.done { border-color:#198754;background:#d1e7dd; }
+.step-ring.done .si { display:none; }
+.step-ring.done::after { content:'✓';position:absolute;font-size:1.4rem;color:#198754; }
+.step-conn { flex:1;height:2px;background:#dee2e6;margin-bottom:22px;transition:background .4s; }
+.step-conn.done { background:#198754; }
+.step-lbl { font-size:.7rem;color:#6c757d;text-align:center;margin-top:4px; }
+@keyframes rpulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,147,216,.4)} 50%{box-shadow:0 0 0 10px rgba(0,147,216,0)} }
+.enroll-hidden { display:none; }
+
+/* Lista de fichas */
+.ficha-row { cursor:pointer;transition:background .15s; }
+.ficha-row:hover { background:#f0f7ff!important; }
+.ficha-row.selected { background:#e8f4fb!important; }
+.badge-huella-ok { background:#d1e7dd;color:#0a3622;font-size:.72rem;padding:3px 8px;border-radius:20px;font-weight:600; }
+.badge-huella-no { background:#f8f9fa;color:#6c757d;font-size:.72rem;padding:3px 8px;border-radius:20px; }
+.detalle-ficha { background:#f8f9fa;border-top:2px solid var(--cp); }
+.detalle-ficha td { padding:1rem 1.2rem!important; }
+</style>
+</head>
+<body>
+<div class="admin-layout">
+
+<aside class="admin-sidebar" id="sb">
+  <div class="sb-inner">
+    <button class="sb-collapse-btn" onclick="toggleSb()"><i class="ri-arrow-left-double-line" id="sbIcon"></i></button>
+    <div class="sb-brand"><i class="ri-heart-pulse-fill"></i><span class="sb-hide">MortaGym</span></div>
+    <div class="sb-role sb-hide">Administrador</div>
+    <nav class="sb-menu">
+      <a href="#" class="sb-item"><i class="ri-dashboard-line"></i><span class="sb-hide">Dashboard</span></a>
+      <a href="#" class="sb-item active"><i class="ri-user-3-line"></i><span class="sb-hide">Alumnos</span></a>
+      <a href="#" class="sb-item"><i class="ri-team-line"></i><span class="sb-hide">Profesores</span></a>
+      <a href="#" class="sb-item"><i class="ri-run-line"></i><span class="sb-hide">Disciplinas</span></a>
+      <a href="#" class="sb-item"><i class="ri-boxing-line"></i><span class="sb-hide">Servicios</span></a>
+      <a href="#" class="sb-item"><i class="ri-money-dollar-circle-line"></i><span class="sb-hide">Gastos</span></a>
+      <a href="#" class="sb-item"><i class="ri-currency-fill"></i><span class="sb-hide">Sueldos</span></a>
+    </nav>
+  </div>
+</aside>
+
+<main class="admin-content" id="mc">
+  <nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="#" class="text-decoration-none" style="color:var(--cp)">Admin</a></li>
+      <li class="breadcrumb-item"><a href="#" class="text-decoration-none" style="color:var(--cp)">Alumnos</a></li>
+      <li class="breadcrumb-item active">Fichas</li>
+    </ol>
+  </nav>
+  <h2 class="titulo-pagina mb-4">Fichas</h2>
+
+  <!-- ── Formulario ── -->
+  <div class="card shadow-sm border-0 mb-4" style="border-radius:12px">
+    <div class="card-body p-4">
+
+      <div class="mb-4">
+        <div class="section-badge"><i class="ri-user-line"></i> Datos personales</div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Apellido y Nombre *</label>
+            <input type="text" id="apellidoNombre" class="form-control" placeholder="Ej: García, Lucas Alejandro">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">DNI *</label>
+            <input type="text" id="dni" class="form-control" placeholder="38472915" oninput="onDni()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Fecha de nacimiento</label>
+            <input type="date" id="fechaNac" class="form-control" onchange="calcEdad()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Edad</label>
+            <input type="number" id="edad" class="form-control" placeholder="—" readonly style="background:#f8f9fa">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Dirección</label>
+            <input type="text" id="direccion" class="form-control" placeholder="Av. San Martín 1234">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Teléfono</label>
+            <input type="tel" id="telefono" class="form-control" placeholder="2974 512308">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Tel. emergencia</label>
+            <input type="tel" id="telEmergencia" class="form-control" placeholder="2974 000000">
+          </div>
+        </div>
+      </div>
+      <hr class="my-3">
+
+      <div class="mb-4">
+        <div class="section-badge"><i class="ri-calendar-check-line"></i> Plan</div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Plan elegido</label>
+            <select id="plan" class="form-select">
+              <option value="">Seleccioná un plan</option>
+              <option>Musculación</option><option>Pileta climatizada</option>
+              <option>Spinning Center</option><option>Cardio Gym</option>
+              <option>Valoración Física</option><option>Plan Personalizado</option><option>Pilates</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Valor mensual ($)</label>
+            <input type="number" id="valorMensual" class="form-control" placeholder="0">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Días</label>
+            <select id="dias" class="form-select">
+              <option value="">Seleccioná</option>
+              <option>Lunes a Viernes</option><option>Lunes / Miércoles / Viernes</option>
+              <option>Martes / Jueves</option><option>Sábados</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Horario</label>
+            <select id="horario" class="form-select">
+              <option value="">Seleccioná</option>
+              <option>Mañana</option><option>Tarde</option><option>Noche</option><option>Libre</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <hr class="my-3">
+
+      <div class="mb-4">
+        <div class="section-badge"><i class="ri-heart-pulse-line"></i> Historia clínica</div>
+        <div class="row g-3">
+          <div class="col-md-3"><label class="form-label">Altura (cm)</label><input type="number" id="altura" class="form-control" placeholder="170"></div>
+          <div class="col-md-3"><label class="form-label">Peso (kg)</label><input type="number" id="peso" class="form-control" placeholder="70"></div>
+          <div class="col-md-3">
+            <label class="form-label">Grupo sanguíneo</label>
+            <select id="grupoSanguineo" class="form-select">
+              <option value="">—</option>
+              <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+              <option>AB+</option><option>AB-</option><option>0+</option><option>0-</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-3 mb-1 small fw-bold text-muted">Antecedentes</div>
+        <div class="row g-2">
+          <div class="col-md-6"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="patCol" onchange="togDet('patCol','detPatCol')"><label class="form-check-label small" for="patCol">Patología de columna</label></div><input type="text" id="detPatCol" class="form-control form-control-sm check-detail" placeholder="Especificá..."></div></div>
+          <div class="col-md-6"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="otrasP" onchange="togDet('otrasP','detOtrasP')"><label class="form-check-label small" for="otrasP">Otras patologías</label></div><input type="text" id="detOtrasP" class="form-control form-control-sm check-detail" placeholder="Especificá..."></div></div>
+          <div class="col-md-6"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="cardiac" onchange="togDet('cardiac','detCardiac')"><label class="form-check-label small" for="cardiac">Enfermedad cardíaca</label></div><input type="text" id="detCardiac" class="form-control form-control-sm check-detail" placeholder="Especificá..."></div></div>
+          <div class="col-md-6"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="lesion" onchange="togDet('lesion','detLesion')"><label class="form-check-label small" for="lesion">Lesiones</label></div><input type="text" id="detLesion" class="form-control form-control-sm check-detail" placeholder="Especificá..."></div></div>
+          <div class="col-md-6"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="deporte" onchange="togDet('deporte','detDeporte')"><label class="form-check-label small" for="deporte">Practica deportes</label></div><input type="text" id="detDeporte" class="form-control form-control-sm check-detail" placeholder="¿Cuál?"></div></div>
+          <div class="col-md-6"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="medic" onchange="togDet('medic','detMedic')"><label class="form-check-label small" for="medic">Toma medicación</label></div><input type="text" id="detMedic" class="form-control form-control-sm check-detail" placeholder="¿Cuál?"></div></div>
+          <div class="col-md-6"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="alergi" onchange="togDet('alergi','detAlergi')"><label class="form-check-label small" for="alergi">Alérgico</label></div><input type="text" id="detAlergi" class="form-control form-control-sm check-detail" placeholder="¿A qué?"></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="mareos"><label class="form-check-label small" for="mareos">Mareos</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="cabeza"><label class="form-check-label small" for="cabeza">Dolor de cabeza</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="desmay"><label class="form-check-label small" for="desmay">Desmayos</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="hemor"><label class="form-check-label small" for="hemor">Hemorragias</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="artic"><label class="form-check-label small" for="artic">Dolor articulaciones</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="pie"><label class="form-check-label small" for="pie">Pie plano</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="rodilla"><label class="form-check-label small" for="rodilla">Rodilla / Tobillo</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="cirug"><label class="form-check-label small" for="cirug">Cirugías</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="convul"><label class="form-check-label small" for="convul">Convulsiones</label></div></div></div>
+          <div class="col-6 col-md-3"><div class="check-group"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="resp"><label class="form-check-label small" for="resp">Prob. respiratorios</label></div></div></div>
+        </div>
+      </div>
+      <hr class="my-3">
+
+      <div class="mb-4">
+        <div class="section-badge"><i class="ri-fingerprint-line"></i> Huella biométrica</div>
+        <div class="d-flex align-items-center gap-3 flex-wrap mt-2">
+          <div class="huella-pill" id="pillHuella"><i class="ri-fingerprint-line" style="font-size:1.15rem"></i><span id="pillLabel">Sin registrar</span></div>
+          <button type="button" id="btnHuella" class="btn-mg-primary btn-huella" onclick="abrirModal()" disabled>
+            <i class="ri-fingerprint-line"></i><span id="btnHuellaLabel">Registrar Huella</span>
+          </button>
+        </div>
+        <p class="text-muted small mt-2 mb-0" id="msgDni"><i class="ri-information-line"></i> Ingresá el DNI para habilitar el registro.</p>
+
+        <!-- NUEVO -->
+        <div class="mt-3">
+          <label class="form-label small text-muted d-flex justify-content-between align-items-center">
+            <span>Template biométrico (base64)</span>
+            <span id="tplLen" class="text-muted" style="font-size:.72rem"></span>
+          </label>
+          <textarea id="templateHuella" class="form-control" rows="3" readonly
+            placeholder="Aparecerá aquí al completar el registro..."
+            style="font-family:monospace;font-size:.72rem;background:#f8f9fa;color:#555"></textarea>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-3 pt-1">
+        <button type="button" class="btn-mg-secondary" onclick="limpiarForm()"><i class="ri-refresh-line"></i> Limpiar</button>
+        <button type="button" class="btn-mg-primary" onclick="guardar()"><i class="ri-save-line"></i> Guardar ficha</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Lista de fichas ── -->
+  <div class="card shadow-sm border-0" style="border-radius:12px">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="section-badge mb-0"><i class="ri-group-line"></i> Fichas guardadas</div>
+        <div class="d-flex gap-2 align-items-center">
+          <input type="text" id="buscador" class="form-control form-control-sm" placeholder="Buscar por nombre o DNI…" style="width:220px" oninput="filtrarFichas()">
+          <button class="btn-mg-secondary" style="padding:.3rem .8rem;font-size:.82rem" onclick="cargarFichas()"><i class="ri-refresh-line"></i></button>
+        </div>
+      </div>
+
+      <div id="tablaWrap">
+        <table class="table table-hover align-middle mb-0" id="tablaFichas" style="display:none">
+          <thead class="table-light">
+            <tr>
+              <th style="width:32px"></th>
+              <th>Apellido y Nombre</th>
+              <th>DNI</th>
+              <th>Plan</th>
+              <th>Huella</th>
+              <th>Guardado</th>
+              <th style="width:90px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyFichas"></tbody>
+        </table>
+        <div id="fichasVacio" class="text-center py-5 text-muted">
+          <i class="ri-inbox-line" style="font-size:2.5rem;opacity:.3"></i>
+          <p class="mt-2 mb-0">Todavía no hay fichas guardadas.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Modal enrollment -->
+<div class="modal fade" id="enrollModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-header border-0 pb-0 px-4 pt-4">
+        <h5 class="modal-title fw-bold">Registro de Huella Digital</h5>
+      </div>
+      <div class="modal-body px-4 pb-0 text-center">
+        <p class="text-muted small mb-4" id="mSubtitle">Seguí los pasos para capturar la huella dactilar</p>
+        <div class="d-flex align-items-center justify-content-center mb-3" id="mSteps">
+          <div class="d-flex flex-column align-items-center"><div class="step-ring active" id="r0"><span class="si">🖐</span></div><div class="step-lbl">Captura 1</div></div>
+          <div class="step-conn" id="c1"></div>
+          <div class="d-flex flex-column align-items-center"><div class="step-ring" id="r1"><span class="si">🖐</span></div><div class="step-lbl">Captura 2</div></div>
+          <div class="step-conn" id="c2"></div>
+          <div class="d-flex flex-column align-items-center"><div class="step-ring" id="r2"><span class="si">🖐</span></div><div class="step-lbl">Captura 3</div></div>
+        </div>
+        <p class="fw-500 mb-1" id="mInstr">Apoyá el dedo en el lector (1 de 3)</p>
+        <p class="text-muted small mb-3" id="mSub">Mantené el dedo quieto hasta escuchar el beep</p>
+        <div id="mOk" class="enroll-hidden py-2 mb-2"><div style="font-size:3rem">✅</div><div class="fw-bold mt-2" style="color:#198754">¡Huella registrada!</div><div class="text-muted small mt-1">Las 3 capturas fueron fusionadas correctamente.</div></div>
+        <div id="mErr" class="enroll-hidden py-2 mb-2"><div style="font-size:2.5rem">❌</div><div class="fw-bold text-danger mt-2" id="mErrTxt">Error en el registro</div><button class="btn btn-sm btn-outline-primary mt-2" onclick="reintentar()">Reintentar</button></div>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pb-4">
+        <button type="button" id="mCancelBtn" class="btn btn-outline-secondary px-4" onclick="cancelar()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const AGENT  = 'http://localhost:3001'
+const POLL_MS = 500
+let sessionId = null, pollTimer = null, bsModal = null
+let templateBase64 = null
+const ta = document.getElementById('templateHuella')
+if (ta) ta.value = ''
+document.getElementById('tplLen').textContent = ''
+let todasFichas = []
+let filaAbierta = null
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+  const { connected } = await fetch(`${AGENT}/api/status`).then(r=>r.json()).catch(()=>({connected:false}))
+  if (!connected) {
+    await fetch(`${AGENT}/api/connect`,{method:'POST'}).catch(()=>{})
+    await new Promise(r=>setTimeout(r,1200))
+  }
+  cargarFichas()
+}
+init()
+
+// ── Sidebar ───────────────────────────────────────────────────────────────
+function toggleSb() {
+  const col = document.getElementById('sb').classList.toggle('collapsed')
+  document.getElementById('mc').classList.toggle('collapsed',col)
+  document.getElementById('sbIcon').className = col?'ri-arrow-right-double-line':'ri-arrow-left-double-line'
+}
+
+// ── Helpers form ──────────────────────────────────────────────────────────
+function onDni() {
+  const ok = document.getElementById('dni').value.trim().length >= 7
+  const btn = document.getElementById('btnHuella')
+  if (!btn.classList.contains('btn-huella-ok')) btn.disabled = !ok
+  document.getElementById('msgDni').style.display = ok?'none':'block'
+}
+function calcEdad() {
+  const v = document.getElementById('fechaNac').value
+  if (v) document.getElementById('edad').value = Math.floor((Date.now()-new Date(v))/(365.25*864e5))
+}
+function togDet(cbId,detId) {
+  const det = document.getElementById(detId)
+  det.classList.toggle('show',document.getElementById(cbId).checked)
+  if (!document.getElementById(cbId).checked) det.value=''
+}
+
+// ── Recolectar datos del form ─────────────────────────────────────────────
+function getFormData() {
+  const cb = id => document.getElementById(id).checked
+  const val = id => document.getElementById(id).value.trim()
+  return {
+    apellidoNombre: val('apellidoNombre'),
+    dni:            val('dni'),
+    fechaNac:       val('fechaNac'),
+    edad:           val('edad'),
+    direccion:      val('direccion'),
+    telefono:       val('telefono'),
+    telEmergencia:  val('telEmergencia'),
+    plan:           val('plan'),
+    valorMensual:   val('valorMensual'),
+    dias:           val('dias'),
+    horario:        val('horario'),
+    altura:         val('altura'),
+    peso:           val('peso'),
+    grupoSanguineo: val('grupoSanguineo'),
+    antecedentes: {
+      patologiaColumna:     cb('patCol'),   patologiaColumnaDetalle:  val('detPatCol'),
+      otrasPatologias:      cb('otrasP'),   otrasPatologiasDetalle:   val('detOtrasP'),
+      enfermedadCardiaca:   cb('cardiac'),  enfermedadCardiacaDetalle:val('detCardiac'),
+      lesiones:             cb('lesion'),   lesionesDetalle:          val('detLesion'),
+      practicaDeportes:     cb('deporte'),  practicaDeportesDetalle:  val('detDeporte'),
+      medicacion:           cb('medic'),    medicacionDetalle:        val('detMedic'),
+      alergico:             cb('alergi'),   alergicoDetalle:          val('detAlergi'),
+      mareos:               cb('mareos'),
+      dolorCabeza:          cb('cabeza'),
+      desmayos:             cb('desmay'),
+      hemorragias:          cb('hemor'),
+      dolorArticulaciones:  cb('artic'),
+      piePlano:             cb('pie'),
+      rodillaTobillo:       cb('rodilla'),
+      cirugias:             cb('cirug'),
+      convulsiones:         cb('convul'),
+      problemasRespiratorios: cb('resp'),
+    },
+    template_huella: templateBase64 || null
+  }
+}
+
+// ── Guardar ───────────────────────────────────────────────────────────────
+async function guardar() {
+  const datos = getFormData()
+  if (!datos.apellidoNombre || !datos.dni) {
+    alert('Completá Apellido/Nombre y DNI antes de guardar.'); return
+  }
+  const r = await fetch(`${AGENT}/api/fichas`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(datos)
+  })
+  const res = await r.json()
+  if (!r.ok) { alert('Error al guardar: ' + res.error); return }
+  cargarFichas()
+  limpiarForm()
+  // Toast de éxito
+  const t = document.createElement('div')
+  t.style.cssText='position:fixed;bottom:1.5rem;right:1.5rem;background:#198754;color:#fff;padding:.75rem 1.4rem;border-radius:10px;font-weight:600;z-index:9999;font-size:.9rem;box-shadow:0 4px 16px rgba(0,0,0,.15)'
+  t.textContent = `✓ Ficha de ${datos.apellidoNombre} guardada`
+  document.body.appendChild(t)
+  setTimeout(()=>t.remove(),3000)
+}
+
+// ── Limpiar form ──────────────────────────────────────────────────────────
+function limpiarForm() {
+  ['apellidoNombre','dni','fechaNac','edad','direccion','telefono','telEmergencia',
+   'valorMensual','altura','peso','detPatCol','detOtrasP','detCardiac','detLesion',
+   'detDeporte','detMedic','detAlergi'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value=''
+  })
+  ;['plan','dias','horario','grupoSanguineo'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.selectedIndex=0
+  })
+  ;['patCol','otrasP','cardiac','lesion','deporte','medic','alergi',
+    'mareos','cabeza','desmay','hemor','artic','pie','rodilla','cirug','convul','resp'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.checked=false
+  })
+  document.querySelectorAll('.check-detail.show').forEach(el=>el.classList.remove('show'))
+  templateBase64 = null
+  document.getElementById('btnHuella').classList.remove('btn-huella-ok')
+  document.getElementById('btnHuella').disabled = true
+  document.getElementById('btnHuellaLabel').textContent = 'Registrar Huella'
+  document.getElementById('pillHuella').classList.remove('ok')
+  document.getElementById('pillLabel').textContent = 'Sin registrar'
+  document.getElementById('msgDni').style.display = 'block'
+}
+
+// ── Cargar y renderizar fichas ─────────────────────────────────────────────
+async function cargarFichas() {
+  todasFichas = await fetch(`${AGENT}/api/fichas`).then(r=>r.json()).catch(()=>[])
+  renderFichas(todasFichas)
+}
+
+function filtrarFichas() {
+  const q = document.getElementById('buscador').value.toLowerCase()
+  renderFichas(q
+    ? todasFichas.filter(f=>(f.apellidoNombre||'').toLowerCase().includes(q)||(f.dni||'').includes(q))
+    : todasFichas)
+}
+
+function renderFichas(lista) {
+  const tbody = document.getElementById('tbodyFichas')
+  const tabla = document.getElementById('tablaFichas')
+  const vacio = document.getElementById('fichasVacio')
+  filaAbierta = null
+
+  if (!lista.length) {
+    tabla.style.display='none'; vacio.style.display='block'; return
+  }
+  tabla.style.display=''; vacio.style.display='none'
+
+  tbody.innerHTML = lista.map((f,i) => {
+    const fecha = f.guardado_en ? new Date(f.guardado_en).toLocaleDateString('es-AR') : '—'
+    const huellaBadge = f.template_huella
+      ? `<span class="badge-huella-ok"><i class="ri-fingerprint-line"></i> Registrada</span>`
+      : `<span class="badge-huella-no">Sin registrar</span>`
+    return `
+    <tr class="ficha-row" id="row-${i}" onclick="toggleDetalle(${i})">
+      <td><i class="ri-arrow-right-s-line text-muted" id="ico-${i}" style="transition:transform .2s"></i></td>
+      <td class="fw-500">${f.apellidoNombre||'—'}</td>
+      <td class="text-muted" style="font-family:monospace">${f.dni||'—'}</td>
+      <td>${f.plan||'—'}</td>
+      <td>${huellaBadge}</td>
+      <td class="text-muted small">${fecha}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation();editarFicha(${i})" title="Editar"><i class="ri-pencil-line"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation();eliminarFicha('${f.dni}')" title="Eliminar"><i class="ri-delete-bin-line"></i></button>
+      </td>
+    </tr>
+    <tr id="detalle-${i}" style="display:none">
+      <td colspan="7" class="detalle-ficha p-0">
+        <div class="p-3">
+          ${renderDetalle(f)}
+        </div>
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function renderDetalle(f) {
+  const a = f.antecedentes || {}
+  const siBool = k => a[k] ? `<span class="badge bg-warning text-dark me-1">${k.replace(/([A-Z])/g,' $1').toLowerCase()}</span>` : ''
+  const antList = ['mareos','dolorCabeza','desmayos','hemorragias','dolorArticulaciones','piePlano','rodillaTobillo','cirugias','convulsiones','problemasRespiratorios']
+    .map(siBool).filter(Boolean).join('') || '<span class="text-muted small">Ninguno marcado</span>'
+  const detList = [
+    a.patologiaColumna    && `<div><strong>Columna:</strong> ${a.patologiaColumnaDetalle||'—'}</div>`,
+    a.otrasPatologias     && `<div><strong>Otras pat.:</strong> ${a.otrasPatologiasDetalle||'—'}</div>`,
+    a.enfermedadCardiaca  && `<div><strong>Cardíaca:</strong> ${a.enfermedadCardiacaDetalle||'—'}</div>`,
+    a.lesiones            && `<div><strong>Lesiones:</strong> ${a.lesionesDetalle||'—'}</div>`,
+    a.practicaDeportes    && `<div><strong>Deportes:</strong> ${a.practicaDeportesDetalle||'—'}</div>`,
+    a.medicacion          && `<div><strong>Medicación:</strong> ${a.medicacionDetalle||'—'}</div>`,
+    a.alergico            && `<div><strong>Alérgico:</strong> ${a.alergicoDetalle||'—'}</div>`,
+  ].filter(Boolean).join('') || '<span class="text-muted small">Sin detalles</span>'
+
+  return `
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="small text-muted fw-bold mb-1">DATOS PERSONALES</div>
+      <div>Fecha nac.: ${f.fechaNac||'—'} · Edad: ${f.edad||'—'}</div>
+      <div>Dirección: ${f.direccion||'—'}</div>
+      <div>Tel.: ${f.telefono||'—'} · Emerg.: ${f.telEmergencia||'—'}</div>
+    </div>
+    <div class="col-md-4">
+      <div class="small text-muted fw-bold mb-1">PLAN</div>
+      <div>${f.plan||'—'} · $${f.valorMensual||'—'}</div>
+      <div>${f.dias||'—'} · ${f.horario||'—'}</div>
+      <div class="small text-muted fw-bold mt-2 mb-1">DATOS CLÍNICOS</div>
+      <div>Altura: ${f.altura||'—'} cm · Peso: ${f.peso||'—'} kg · Grupo: ${f.grupoSanguineo||'—'}</div>
+    </div>
+    <div class="col-md-4">
+      <div class="small text-muted fw-bold mb-1">ANTECEDENTES</div>
+      <div class="mb-2">${antList}</div>
+      <div class="small">${detList}</div>
+    </div>
+  </div>`
+}
+
+function toggleDetalle(i) {
+  if (filaAbierta !== null && filaAbierta !== i) {
+    document.getElementById(`detalle-${filaAbierta}`).style.display = 'none'
+    document.getElementById(`row-${filaAbierta}`).classList.remove('selected')
+    document.getElementById(`ico-${filaAbierta}`).style.transform = ''
+  }
+  const det = document.getElementById(`detalle-${i}`)
+  const abierto = det.style.display !== 'none'
+  det.style.display = abierto ? 'none' : ''
+  document.getElementById(`row-${i}`).classList.toggle('selected',!abierto)
+  document.getElementById(`ico-${i}`).style.transform = abierto ? '' : 'rotate(90deg)'
+  filaAbierta = abierto ? null : i
+}
+
+function editarFicha(i) {
+  const f = todasFichas[i]
+  if (!f) return
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||'' }
+  set('apellidoNombre',f.apellidoNombre); set('dni',f.dni); set('fechaNac',f.fechaNac)
+  set('edad',f.edad); set('direccion',f.direccion); set('telefono',f.telefono)
+  set('telEmergencia',f.telEmergencia); set('plan',f.plan); set('valorMensual',f.valorMensual)
+  set('dias',f.dias); set('horario',f.horario); set('altura',f.altura)
+  set('peso',f.peso); set('grupoSanguineo',f.grupoSanguineo)
+  // Antecedentes
+  const a = f.antecedentes||{}
+  const setCb = (id,val,detId,detVal) => {
+    const el=document.getElementById(id); if(el) el.checked=!!val
+    if(detId){ const d=document.getElementById(detId); if(d){ d.value=detVal||''; d.classList.toggle('show',!!val) } }
+  }
+  setCb('patCol',a.patologiaColumna,'detPatCol',a.patologiaColumnaDetalle)
+  setCb('otrasP',a.otrasPatologias,'detOtrasP',a.otrasPatologiasDetalle)
+  setCb('cardiac',a.enfermedadCardiaca,'detCardiac',a.enfermedadCardiacaDetalle)
+  setCb('lesion',a.lesiones,'detLesion',a.lesionesDetalle)
+  setCb('deporte',a.practicaDeportes,'detDeporte',a.practicaDeportesDetalle)
+  setCb('medic',a.medicacion,'detMedic',a.medicacionDetalle)
+  setCb('alergi',a.alergico,'detAlergi',a.alergicoDetalle)
+  ;['mareos','cabeza','desmay','hemor','artic','pie','rodilla','cirug','convul','resp'].forEach(id=>{
+    const map={mareos:'mareos',cabeza:'dolorCabeza',desmay:'desmayos',hemor:'hemorragias',
+      artic:'dolorArticulaciones',pie:'piePlano',rodilla:'rodillaTobillo',cirug:'cirugias',
+      convul:'convulsiones',resp:'problemasRespiratorios'}
+    const el=document.getElementById(id); if(el) el.checked=!!a[map[id]]
+  })
+  // Huella
+  if (f.template_huella) {
+    templateBase64 = f.template_huella
+    document.getElementById('btnHuella').classList.add('btn-huella-ok')
+    document.getElementById('btnHuella').disabled = true
+    document.getElementById('btnHuellaLabel').textContent = '✓ Huella registrada'
+    document.getElementById('pillHuella').classList.add('ok')
+    document.getElementById('pillLabel').innerHTML = '<i class="ri-checkbox-circle-fill me-1"></i>Registrada'
+
+    // NUEVO
+    const ta = document.getElementById('templateHuella')
+    if (ta) {
+      ta.value = f.template_huella
+      document.getElementById('tplLen').textContent = `${f.template_huella.length} caracteres`
+    }
+  }
+  onDni()
+  window.scrollTo({top:0,behavior:'smooth'})
+}
+
+async function eliminarFicha(dni) {
+  if (!confirm(`¿Eliminar la ficha del DNI ${dni}?`)) return
+  await fetch(`${AGENT}/api/fichas/${dni}`,{method:'DELETE'})
+  cargarFichas()
+}
+
+// ── Enrollment ────────────────────────────────────────────────────────────
+function abrirModal() {
+  const dni = document.getElementById('dni').value.trim(); if (!dni) return
+  resetModal()
+  bsModal = new bootstrap.Modal(document.getElementById('enrollModal'))
+  bsModal.show(); iniciar(dni)
+}
+async function iniciar(dni) {
+  setInstr('Conectando al agente...','')
+  const nombre = document.getElementById('apellidoNombre').value.trim()
+  try {
+    const res = await fetch(`${AGENT}/api/enroll/${encodeURIComponent(dni)}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre})
+    })
+    if (!res.ok) { const d=await res.json().catch(()=>({})); throw new Error(d.error||`HTTP ${res.status}`) }
+    const { sessionId:sid } = await res.json()
+    sessionId = sid
+    setInstr('Apoyá el dedo en el lector (1 de 3)','Mantené el dedo quieto hasta escuchar el beep')
+    pollTimer = setInterval(()=>poll(sid),POLL_MS)
+  } catch(e) {
+    mostrarError(e.name==='TypeError'?'No se pudo conectar al agente.':e.message)
+  }
+}
+async function poll(sid) {
+  try {
+    const res = await fetch(`${AGENT}/api/enroll/session/${sid}`)
+    if (!res.ok) { pararPoll(); return }
+    const s = await res.json()
+    if (s.status === 'done' && s.templateBase64) templateBase64 = s.templateBase64
+    actualizarModal(s)
+    if (s.status==='done'||s.status==='error') pararPoll()
+  } catch { pararPoll(); mostrarError('Conexión perdida con el agente.') }
+}
+function actualizarModal({status,step}) {
+  if (status==='waiting_finger') {
+    for(let i=0;i<3;i++){const r=document.getElementById(`r${i}`);r.classList.remove('active','done');if(i<step)r.classList.add('done');else if(i===step)r.classList.add('active')}
+    if(step>=1)document.getElementById('c1').classList.add('done')
+    if(step>=2)document.getElementById('c2').classList.add('done')
+    setInstr(`Apoyá el dedo en el lector (${step+1} de 3)`,'Mantené el dedo quieto hasta escuchar el beep')
+  } else if(status==='lift_finger') {
+    for(let i=0;i<3;i++){const r=document.getElementById(`r${i}`);r.classList.remove('active','done');if(i<step)r.classList.add('done')}
+    setInstr(`✓ Captura ${step} lista — levantá el dedo`,'')
+  } else if(status==='processing') {
+    for(let i=0;i<3;i++)document.getElementById(`r${i}`).classList.add('done')
+    setInstr('Procesando...','Fusionando las 3 capturas')
+  } else if(status==='done') mostrarOk(step)
+  else if(status==='error') mostrarError(step?.error||'Error en el registro')
+}
+function mostrarOk(s) {
+  templateBase64 = s?.templateBase64 || templateBase64
+  ocultarInstr(); document.getElementById('mOk').classList.remove('enroll-hidden')
+  const btn=document.getElementById('mCancelBtn'); btn.textContent='Cerrar'
+  btn.onclick=()=>{ bsModal.hide(); marcarRegistrada() }
+}
+function marcarRegistrada() {
+  const btn=document.getElementById('btnHuella')
+  btn.classList.add('btn-huella-ok'); btn.disabled=true
+  document.getElementById('btnHuellaLabel').innerHTML='✓ Huella registrada'
+  document.getElementById('pillHuella').classList.add('ok')
+  document.getElementById('pillLabel').innerHTML='<i class="ri-checkbox-circle-fill me-1"></i>Registrada'
+  document.getElementById('msgDni').style.display='none'
+
+  // NUEVO: volcar al textarea visible
+  const ta = document.getElementById('templateHuella')
+  if (ta && templateBase64) {
+    ta.value = templateBase64
+    document.getElementById('tplLen').textContent = `${templateBase64.length} caracteres`
+  }
+}
+function mostrarError(msg) { ocultarInstr(); document.getElementById('mErr').classList.remove('enroll-hidden'); document.getElementById('mErrTxt').textContent=msg }
+function reintentar() { const dni=document.getElementById('dni').value.trim(); resetModal(); iniciar(dni) }
+async function cancelar() {
+  pararPoll()
+  if(sessionId){ await fetch(`${AGENT}/api/enroll/session/${sessionId}`,{method:'DELETE'}).catch(()=>{}); sessionId=null }
+  bsModal?.hide()
+}
+function pararPoll() { if(pollTimer){clearInterval(pollTimer);pollTimer=null} }
+function setInstr(m,s) { document.getElementById('mInstr').textContent=m; document.getElementById('mSub').textContent=s }
+function ocultarInstr() {
+  ['mSteps','mInstr','mSub','mSubtitle'].forEach(id=>document.getElementById(id).style.display='none')
+}
+function resetModal() {
+  for(let i=0;i<3;i++){const r=document.getElementById(`r${i}`);r.classList.remove('done');r.classList.toggle('active',i===0)}
+  document.getElementById('c1').classList.remove('done'); document.getElementById('c2').classList.remove('done')
+  ;['mSteps','mInstr','mSub','mSubtitle'].forEach(id=>document.getElementById(id).style.display='')
+  document.getElementById('mOk').classList.add('enroll-hidden'); document.getElementById('mErr').classList.add('enroll-hidden')
+  const btn=document.getElementById('mCancelBtn'); btn.textContent='Cancelar'; btn.onclick=cancelar
+  setInstr('Iniciando...','')
+}
+function getFormData() {
+  // ... resto igual ...
+  const tplFromInput = document.getElementById('templateHuella')?.value.trim()
+  return {
+    // ... resto igual ...
+    template_huella: tplFromInput || templateBase64 || null
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "huella-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "express": "^4.19.2",
+    "koffi": "^2.9.0",
+    "serialport": "^13.0.0",
+    "ws": "^8.17.0"
+  },
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

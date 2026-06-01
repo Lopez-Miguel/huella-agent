@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Huella Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117; color: #e6edf3;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh; padding: 2rem;
+    }
+    .page { max-width: 900px; margin: 0 auto; }
+    .page-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 1.25rem; }
+    .page-title span { color: #0093D8; }
+
+    .top-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 1.4rem; margin-bottom: 1rem; }
+    .card-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; color: #8b949e; margin-bottom: 1.1rem; }
+
+    /* Form */
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: .82rem; font-weight: 600; color: #8b949e; margin-bottom: .4rem; }
+    .field input {
+      width: 100%; background: #0d1117; border: 1px solid #30363d;
+      border-radius: 8px; color: #e6edf3; font-size: .9rem;
+      padding: .6rem .8rem; outline: none; transition: border-color .2s;
+    }
+    .field input:focus { border-color: #0093D8; }
+    .field input::placeholder { color: #484f58; }
+
+    .huella-status {
+      display: flex; align-items: center; gap: 10px;
+      background: #0d1117; border: 1px solid #30363d;
+      border-radius: 8px; padding: .6rem .9rem;
+      margin-bottom: .6rem; min-height: 42px; transition: border-color .3s;
+    }
+    .huella-status.registered { border-color: #10b98155; }
+    .huella-status .h-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .huella-status .h-label { font-size: .82rem; color: #8b949e; flex: 1; }
+    .huella-status.registered .h-label { color: #10b981; font-weight: 600; }
+    .huella-status .h-preview { font-size: .65rem; font-family: monospace; color: #484f58; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .huella-status.registered .h-preview { color: #6b7280; }
+
+    /* Buttons */
+    .btn { width: 100%; padding: .7rem 1rem; border: none; border-radius: 8px; font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:disabled { opacity: .3; cursor: not-allowed; }
+    .btn-primary { background: #0093D8; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #007bbd; }
+    .btn-ghost { background: transparent; color: #8b949e; border: 1px solid #30363d; margin-top: 8px; }
+    .btn-ghost:hover:not(:disabled) { border-color: #ef4444; color: #ef4444; }
+    .btn-enroll { background: #1c2128; color: #e6edf3; border: 1px solid #30363d; font-size: .85rem; }
+    .btn-enroll:hover:not(:disabled) { border-color: #0093D8; color: #0093D8; }
+    .btn-save { background: linear-gradient(135deg, #0093D8 0%, #A54E9E 100%); color: #fff; margin-top: .75rem; font-size: .9rem; }
+    .btn-save:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); }
+    .btn-danger { background: transparent; color: #ef4444; border: 1px solid #ef444444; margin-top: 8px; }
+    .btn-danger:hover:not(:disabled) { background: #ef444415; }
+
+    /* Device */
+    .device-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .9rem; }
+    .status-pill { display: flex; align-items: center; gap: 7px; padding: 4px 12px; border-radius: 20px; font-size: .75rem; font-weight: 600; background: #0d1117; border: 1px solid #30363d; color: #8b949e; transition: all .3s; }
+    .status-pill.connected { border-color: #10b98155; color: #10b981; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; flex-shrink: 0; transition: background .3s; }
+    .connected .dot { background: #10b981; animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .device-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+    .device-icon { width: 40px; height: 40px; background: #21262d; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .device-name { font-weight: 600; font-size: .9rem; }
+    .device-sub  { font-size: .75rem; color: #8b949e; margin-top: 2px; }
+    .log { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: .6rem .8rem; font-size: .7rem; font-family: monospace; color: #8b949e; max-height: 80px; overflow-y: auto; margin-top: .9rem; }
+    .log div { margin-bottom: 2px; line-height: 1.4; }
+    .log .ok { color: #10b981; } .log .err { color: #ef4444; } .log .info { color: #0093D8; }
+
+    /* DB preview */
+    .db-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; padding: 2rem; color: #484f58; font-size: .85rem; text-align: center; }
+    .db-empty span:first-child { font-size: 1.8rem; }
+    .json-block { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 1rem 1.2rem; font-family: monospace; font-size: .8rem; line-height: 1.8; overflow-x: auto; white-space: pre; }
+    .json-key { color: #79c0ff; } .json-str { color: #a5d6ff; } .json-num { color: #f2cc60; }
+    .json-bool { color: #ff9d0a; } .json-null { color: #8b949e; } .json-tpl { color: #10b981; }
+    .db-saved { display: flex; align-items: center; gap: 8px; background: #10b98115; border: 1px solid #10b98144; border-radius: 8px; padding: .6rem 1rem; font-size: .82rem; color: #10b981; font-weight: 600; margin-bottom: .75rem; }
+
+    /* Verify section */
+    .verify-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .btn-sm { background: transparent; border: 1px solid #30363d; color: #8b949e; font-size: .75rem; padding: .3rem .7rem; border-radius: 6px; cursor: pointer; transition: all .2s; }
+    .btn-sm:hover { border-color: #0093D8; color: #0093D8; }
+
+    .socios-list { margin-bottom: 1rem; }
+    .socios-empty { font-size: .82rem; color: #484f58; padding: .5rem 0; }
+    .socio-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: .5rem .75rem; border-radius: 8px;
+      background: #0d1117; border: 1px solid #21262d;
+      margin-bottom: .4rem; font-size: .85rem;
+    }
+    .socio-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; flex-shrink: 0; }
+    .socio-name { font-weight: 600; flex: 1; }
+    .socio-dni  { font-size: .78rem; color: #8b949e; font-family: monospace; }
+
+    .verify-controls { display: flex; flex-direction: column; gap: 0; }
+
+    /* Result box */
+    .verify-result {
+      margin-top: 1rem; border-radius: 10px; padding: 1.2rem 1.4rem;
+      display: flex; align-items: center; gap: 1rem;
+      border: 1px solid transparent; transition: all .3s;
+    }
+    .verify-result.waiting  { background: #0d1117; border-color: #30363d; }
+    .verify-result.match    { background: #10b98115; border-color: #10b98155; }
+    .verify-result.nomatch  { background: #ef444415; border-color: #ef444455; }
+
+    .vr-icon { font-size: 2rem; flex-shrink: 0; }
+    .vr-body {}
+    .vr-title { font-size: 1rem; font-weight: 700; margin-bottom: .3rem; }
+    .vr-detail { font-size: .82rem; color: #8b949e; line-height: 1.6; }
+    .vr-detail.match-detail  { color: #10b981; }
+    .vr-detail.nm-detail     { color: #ef4444; }
+
+    .pulse-waiting { animation: pw 1.5s ease-in-out infinite; }
+    @keyframes pw { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Modal */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.82); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 2rem 1.75rem; width: 100%; max-width: 380px; text-align: center; }
+    .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: .4rem; }
+    .modal-sub   { font-size: .82rem; color: #8b949e; margin-bottom: 2rem; }
+    .steps { display: flex; align-items: center; justify-content: center; margin-bottom: 1.75rem; }
+    .step  { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .step-line { width: 44px; height: 2px; background: #30363d; margin-bottom: 24px; transition: background .4s; }
+    .step-line.done { background: #10b981; }
+    .step-circle { width: 58px; height: 58px; border-radius: 50%; border: 2px solid #30363d; background: #21262d; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; transition: all .35s; position: relative; }
+    .step.active .step-circle { border-color: #0093D8; animation: ring 1.4s ease-in-out infinite; }
+    .step.done   .step-circle { border-color: #10b981; background: #10b98118; }
+    .step.done   .step-circle .icon { display: none; }
+    .step.done   .step-circle::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #10b981; }
+    .step-label { font-size: .72rem; color: #8b949e; }
+    .step.active .step-label { color: #0093D8; font-weight: 600; }
+    .step.done   .step-label { color: #10b981; }
+    @keyframes ring { 0%,100%{box-shadow:0 0 0 0 rgba(0,147,216,.4)} 50%{box-shadow:0 0 0 10px rgba(0,147,216,0)} }
+    .instr     { font-size: .95rem; color: #e6edf3; min-height: 26px; margin-bottom: .35rem; }
+    .instr-sub { font-size: .82rem; color: #8b949e; min-height: 20px; margin-bottom: 1.5rem; }
+    .success-icon { font-size: 2.8rem; margin-bottom: .75rem; display: none; }
+    .btn-cancel { background: transparent; color: #8b949e; border: 1px solid #30363d; margin-top: .5rem; }
+    .btn-cancel:hover { border-color: #ef4444; color: #ef4444; }
+
+    @media (max-width: 640px) { .top-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-title">Huella <span>Agent</span> — Simulación</div>
+
+  <div class="top-row">
+    <!-- ── Formulario ── -->
+    <div class="card">
+      <div class="card-label">Nuevo Socio</div>
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="fNombre" placeholder="Ej: Juan Pérez" oninput="livePreview()">
+      </div>
+      <div class="field">
+        <label>DNI</label>
+        <input type="text" id="fDni" placeholder="Ej: 12345678" oninput="livePreview()">
+      </div>
+      <div class="field">
+        <label>Huella Biométrica</label>
+        <div class="huella-status" id="huellaStatus">
+          <span class="h-icon">🖐</span>
+          <span class="h-label" id="huellaLabel">Sin registrar</span>
+          <span class="h-preview" id="huellaPreview"></span>
+        </div>
+        <button class="btn btn-enroll" id="btnFormEnroll" onclick="openEnroll()" disabled>
+          🖐&nbsp; Registrar Huella
+        </button>
+      </div>
+      <button class="btn btn-save" id="btnSave" onclick="guardar()" disabled>
+        Guardar socio
+      </button>
+    </div>
+
+    <!-- ── Lectores ── -->
+    <div class="card">
+      <div class="device-header">
+        <div class="card-label" style="margin-bottom:0">Lectores Biométricos</div>
+        <div class="status-pill" id="pill"><div class="dot"></div><span id="pillText">Sin conexión</span></div>
+      </div>
+
+      <!-- Dispositivo 0 -->
+      <div class="device-row">
+        <div class="device-icon">🖐</div>
+        <div style="flex:1">
+          <div class="device-name">ZK9500 — Recepción <small style="font-weight:400;color:#8b949e">(enrolamiento)</small></div>
+          <div class="device-sub" id="deviceSub0">No conectado</div>
+        </div>
+        <div class="status-pill" id="pill0"><div class="dot"></div><span>–</span></div>
+      </div>
+
+      <!-- Dispositivo 1 -->
+      <div class="device-row" style="margin-bottom:1rem">
+        <div class="device-icon">🖐</div>
+        <div style="flex:1">
+          <div class="device-name">ZK9500 — Molinete <small style="font-weight:400;color:#8b949e">(identificación)</small></div>
+          <div class="device-sub" id="deviceSub1">No conectado</div>
+        </div>
+        <div class="status-pill" id="pill1"><div class="dot"></div><span>–</span></div>
+      </div>
+
+      <button class="btn btn-primary" id="btnConnect" onclick="apiConnect()">Conectar lectores</button>
+      <button class="btn btn-ghost"   id="btnDisconnect" onclick="apiDisconnect()" style="display:none">Desconectar</button>
+      <div class="log" id="log"><div class="info">Sistema iniciado.</div></div>
+    </div>
+  </div>
+
+  <!-- ── Vista previa BD ── -->
+  <div class="card">
+    <div class="card-label">Vista previa — dato a guardar en la base de datos</div>
+    <div id="savedBadge" class="db-saved" style="display:none">✓ Guardado en data/socios.json</div>
+    <div id="dbPreview">
+      <div class="db-empty">
+        <span>🗄️</span>
+        <span>Completá el formulario y registrá la huella para ver la vista previa</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Verificar Huella ── -->
+  <div class="card">
+    <div class="verify-header">
+      <div class="card-label" style="margin-bottom:0">Verificar Huella</div>
+      <button class="btn-sm" onclick="loadSocios()">↻ Actualizar</button>
+    </div>
+
+    <div class="socios-list" id="sociosList">
+      <div class="socios-empty">Sin socios registrados.</div>
+    </div>
+
+    <div class="verify-controls">
+      <button class="btn btn-primary" id="btnStartVerify" onclick="startVerify()" disabled>
+        Iniciar Verificación
+      </button>
+      <button class="btn btn-danger" id="btnStopVerify" onclick="stopVerify()" style="display:none">
+        Detener
+      </button>
+    </div>
+
+    <div class="verify-result waiting" id="verifyResult" style="display:none">
+      <div class="vr-icon pulse-waiting">🖐</div>
+      <div class="vr-body">
+        <div class="vr-title">Esperando huella...</div>
+        <div class="vr-detail">Apoyá el dedo en el lector</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal de enrolamiento -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="success-icon" id="successIcon">✅</div>
+    <div class="modal-title" id="mTitle">Registrar Huella</div>
+    <div class="modal-sub"   id="mSub">Seguí los pasos para capturar la huella</div>
+    <div class="steps" id="steps">
+      <div class="step active" id="s0"><div class="step-circle"><span class="icon">🖐</span></div><div class="step-label">Captura 1</div></div>
+      <div class="step-line" id="l1"></div>
+      <div class="step" id="s1"><div class="step-circle"><span class="icon">🖐</span></div><div class="step-label">Captura 2</div></div>
+      <div class="step-line" id="l2"></div>
+      <div class="step" id="s2"><div class="step-circle"><span class="icon">🖐</span></div><div class="step-label">Captura 3</div></div>
+    </div>
+    <div class="instr"     id="instr">Apoyá el dedo en el lector (1 de 3)</div>
+    <div class="instr-sub" id="instrSub">Mantené el dedo quieto hasta escuchar el beep</div>
+    <button class="btn btn-cancel" id="btnCancel" onclick="apiCancelEnroll()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+  let ws = null
+  let templateBase64 = null
+  let verifyActive   = false
+
+  // ── WebSocket ──────────────────────────────────────────────────────────────
+
+  function connectWS() {
+    ws = new WebSocket('ws://' + location.host)
+    ws.onmessage = e => handle(JSON.parse(e.data))
+    ws.onclose   = () => setTimeout(connectWS, 2000)
+  }
+
+  function handle(msg) {
+    switch (msg.type) {
+      case 'init':
+      case 'status':
+        setConnected(msg.connected)
+        if (msg.msg) addLog(msg.msg, msg.connected ? 'ok' : 'info')
+        break
+      case 'deviceConnected':
+        setDevicePill(msg.index, true, `${msg.width}×${msg.height}px`)
+        addLog(`Lector ${msg.index} conectado (${msg.width}×${msg.height}px)`, 'ok')
+        break
+      case 'deviceMissing':
+        setDevicePill(msg.index, false, 'No detectado')
+        addLog(`Lector ${msg.index} no encontrado`, 'err')
+        break
+      case 'connected':
+        setConnected(true, msg.count)
+        break
+      case 'disconnected':
+        setConnected(false, 0)
+        if (verifyActive) stopVerify()
+        addLog(msg.msg || 'Lectores desconectados', 'info')
+        break
+      case 'enrollStep':      handleStep(msg.step);  break
+      case 'enrollComplete':  handleComplete(msg);   break
+      case 'enrollError':     handleError(msg);      break
+      case 'identifyReady':
+        addLog(`Verificación activa — ${msg.count} socio(s) cargados`, 'ok')
+        setVerifyResult('waiting')
+        break
+      case 'identified':      handleIdentified(msg); break
+      case 'notIdentified':   handleNotIdentified(); break
+      case 'identifyStopped': addLog('Verificación detenida', 'info'); break
+      case 'error':           addLog('Error: ' + msg.msg, 'err'); break
+    }
+  }
+
+  // ── Conexión ───────────────────────────────────────────────────────────────
+
+  function setConnected(on, count = 0) {
+    const pill = document.getElementById('pill')
+    document.getElementById('pillText').textContent        = on ? `${count} conectado(s)` : 'Sin conexión'
+    document.getElementById('btnConnect').style.display    = on ? 'none' : 'flex'
+    document.getElementById('btnDisconnect').style.display = on ? 'flex' : 'none'
+    pill.className = on ? 'status-pill connected' : 'status-pill'
+    document.getElementById('btnFormEnroll').disabled = !on || !!templateBase64
+    const sociosCount = document.querySelectorAll('.socio-item').length
+    document.getElementById('btnStartVerify').disabled = !on || sociosCount === 0
+    // Si desconectó, resetea píldoras individuales
+    if (!on) { setDevicePill(0, false, 'No conectado'); setDevicePill(1, false, 'No conectado') }
+  }
+
+  function setDevicePill(index, on, sub = '') {
+    const pill = document.getElementById('pill' + index)
+    const subEl = document.getElementById('deviceSub' + index)
+    if (!pill) return
+    pill.className = on ? 'status-pill connected' : 'status-pill'
+    pill.innerHTML = `<div class="dot"></div><span>${on ? 'OK' : '–'}</span>`
+    if (subEl) subEl.textContent = sub || (on ? 'Activo' : 'No conectado')
+  }
+
+  // ── Enrolamiento ───────────────────────────────────────────────────────────
+
+  function handleStep(step) {
+    document.getElementById('s' + (step - 1)).className = 'step done'
+    if (step < 3) {
+      document.getElementById('l' + step).classList.add('done')
+      setInstr('✓ Captura ' + step + ' lista — levantá el dedo', '')
+      setTimeout(() => {
+        document.getElementById('s' + step).className = 'step active'
+        setInstr(`Apoyá el dedo en el lector (${step + 1} de 3)`,
+                 'Mantené el dedo quieto hasta escuchar el beep')
+      }, 1500)
+    } else {
+      document.getElementById('l2').classList.add('done')
+      setInstr('Procesando...', 'Fusionando las 3 capturas')
+    }
+  }
+
+  function handleComplete(msg) {
+    templateBase64 = msg.templateBase64
+    const status = document.getElementById('huellaStatus')
+    status.classList.add('registered')
+    document.getElementById('huellaLabel').textContent   = '✓ Registrada'
+    document.getElementById('huellaPreview').textContent = templateBase64.slice(0, 18) + '…'
+    document.getElementById('btnFormEnroll').disabled    = true
+    document.getElementById('btnSave').disabled          = false
+
+    document.getElementById('steps').style.display       = 'none'
+    document.getElementById('successIcon').style.display = 'block'
+    document.getElementById('mTitle').textContent = '¡Huella registrada!'
+    document.getElementById('mSub').textContent   = 'Las 3 capturas fueron fusionadas correctamente'
+    setInstr('', '')
+    const btn = document.getElementById('btnCancel')
+    btn.textContent = 'Cerrar'; btn.onclick = closeModal
+
+    addLog(`Template generado — ${msg.len} bytes`, 'ok')
+    livePreview()
+  }
+
+  function handleError(msg) {
+    setInstr('Error en el registro', msg.msg || '')
+    addLog(msg.msg || `enrollError ret=${msg.ret}`, 'err')
+    const btn = document.getElementById('btnCancel')
+    btn.textContent = 'Cerrar'; btn.onclick = closeModal
+  }
+
+  function setInstr(main, sub) {
+    document.getElementById('instr').textContent    = main
+    document.getElementById('instrSub').textContent = sub
+  }
+
+  // ── Verificación ───────────────────────────────────────────────────────────
+
+  async function startVerify() {
+    const r = await fetch('/api/identify/start', { method: 'POST' })
+    const data = await r.json()
+    if (!r.ok) { addLog('Error: ' + data.error, 'err'); return }
+    verifyActive = true
+    document.getElementById('btnStartVerify').style.display = 'none'
+    document.getElementById('btnStopVerify').style.display  = 'flex'
+    document.getElementById('verifyResult').style.display   = 'flex'
+  }
+
+  async function stopVerify() {
+    await fetch('/api/identify/stop', { method: 'POST' })
+    verifyActive = false
+    document.getElementById('btnStartVerify').style.display = 'flex'
+    document.getElementById('btnStopVerify').style.display  = 'none'
+    document.getElementById('verifyResult').style.display   = 'none'
+  }
+
+  function handleIdentified(msg) {
+    addLog(`✓ Identificado: ${msg.nombre} (score ${msg.score})`, 'ok')
+    setVerifyResult('match', msg)
+  }
+
+  function handleNotIdentified() {
+    addLog('Huella no reconocida', 'err')
+    setVerifyResult('nomatch')
+    setTimeout(() => { if (verifyActive) setVerifyResult('waiting') }, 3000)
+  }
+
+  function setVerifyResult(type, data = {}) {
+    const el = document.getElementById('verifyResult')
+    el.style.display = 'flex'
+    if (type === 'waiting') {
+      el.className = 'verify-result waiting'
+      el.innerHTML = `<div class="vr-icon pulse-waiting">🖐</div>
+        <div class="vr-body">
+          <div class="vr-title">Esperando huella...</div>
+          <div class="vr-detail">Apoyá el dedo en el lector</div>
+        </div>`
+    } else if (type === 'match') {
+      el.className = 'verify-result match'
+      el.innerHTML = `<div class="vr-icon">✅</div>
+        <div class="vr-body">
+          <div class="vr-title">${data.nombre}</div>
+          <div class="vr-detail match-detail">
+            DNI: ${data.dni}<br>
+            Score: ${data.score}
+          </div>
+        </div>`
+      setTimeout(() => { if (verifyActive) setVerifyResult('waiting') }, 4000)
+    } else if (type === 'nomatch') {
+      el.className = 'verify-result nomatch'
+      el.innerHTML = `<div class="vr-icon">❌</div>
+        <div class="vr-body">
+          <div class="vr-title">No reconocido</div>
+          <div class="vr-detail nm-detail">La huella no coincide con ningún socio</div>
+        </div>`
+    }
+  }
+
+  // ── Socios ─────────────────────────────────────────────────────────────────
+
+  async function loadSocios() {
+    const socios = await fetch('/api/socios').then(r => r.json())
+    const list = document.getElementById('sociosList')
+    const pill = document.getElementById('pill')
+    const connected = pill.classList.contains('connected')
+
+    if (!socios.length) {
+      list.innerHTML = '<div class="socios-empty">Sin socios registrados.</div>'
+      document.getElementById('btnStartVerify').disabled = true
+      return
+    }
+
+    list.innerHTML = socios.map(s => `
+      <div class="socio-item">
+        <div class="socio-dot"></div>
+        <div class="socio-name">${s.nombre}</div>
+        <div class="socio-dni">${s.dni}</div>
+      </div>`).join('')
+
+    document.getElementById('btnStartVerify').disabled = !connected
+  }
+
+  // ── Guardar (POST a la API) ─────────────────────────────────────────────────
+
+  async function guardar() {
+    const nombre = document.getElementById('fNombre').value.trim()
+    const dni    = document.getElementById('fDni').value.trim()
+    if (!nombre || !dni || !templateBase64) return
+
+    const r = await fetch('/api/socios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, dni, template_huella: templateBase64 })
+    })
+    const data = await r.json()
+
+    if (!r.ok) { addLog('Error al guardar: ' + data.error, 'err'); return }
+
+    document.getElementById('savedBadge').style.display = 'flex'
+    document.getElementById('btnSave').disabled = true
+    addLog(`Guardado: ${nombre} (${dni}) → id ${data.socio.id}`, 'ok')
+
+    // Recargar lista de socios en sección de verificación
+    loadSocios()
+  }
+
+  // ── Vista previa BD ────────────────────────────────────────────────────────
+
+  function livePreview() {
+    const nombre = document.getElementById('fNombre').value.trim()
+    const dni    = document.getElementById('fDni').value.trim()
+    if (!nombre && !dni && !templateBase64) return
+    const record = {
+      nombre:          nombre  || null,
+      dni:             dni     || null,
+      template_huella: templateBase64
+        ? templateBase64.slice(0, 64) + `…[${templateBase64.length} chars]`
+        : null,
+      cuota_al_dia: false,
+      cert_medico:  false,
+      activo:       true,
+      creado_en:    new Date().toISOString().slice(0, 19).replace('T', ' ')
+    }
+    document.getElementById('dbPreview').innerHTML =
+      '<pre class="json-block">' + colorJSON(record) + '</pre>'
+  }
+
+  function colorJSON(obj) {
+    return JSON.stringify(obj, null, 2).replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      m => {
+        if (/^"/.test(m)) {
+          if (/:$/.test(m))  return `<span class="json-key">${m}</span>`
+          if (/…\[/.test(m)) return `<span class="json-tpl">${m}</span>`
+          return `<span class="json-str">${m}</span>`
+        }
+        if (/true|false/.test(m)) return `<span class="json-bool">${m}</span>`
+        if (/null/.test(m))       return `<span class="json-null">${m}</span>`
+        return `<span class="json-num">${m}</span>`
+      }
+    )
+  }
+
+  // ── API helpers ────────────────────────────────────────────────────────────
+
+  async function apiConnect()    { addLog('Conectando…', 'info'); await fetch('/api/connect',    { method: 'POST' }) }
+  async function apiDisconnect() { await fetch('/api/disconnect', { method: 'POST' }) }
+  async function openEnroll() {
+    document.getElementById('steps').style.display      = 'flex'
+    document.getElementById('successIcon').style.display = 'none'
+    document.getElementById('mTitle').textContent = 'Registrar Huella'
+    document.getElementById('mSub').textContent   = 'Seguí los pasos para capturar la huella'
+    for (let i = 0; i < 3; i++) document.getElementById('s' + i).className = 'step' + (i === 0 ? ' active' : '')
+    document.getElementById('l1').className = 'step-line'
+    document.getElementById('l2').className = 'step-line'
+    setInstr('Apoyá el dedo en el lector (1 de 3)', 'Mantené el dedo quieto hasta escuchar el beep')
+    const btn = document.getElementById('btnCancel')
+    btn.textContent = 'Cancelar'; btn.onclick = apiCancelEnroll
+    document.getElementById('overlay').classList.add('open')
+    await fetch('/api/enroll/start', { method: 'POST' })
+  }
+  async function apiCancelEnroll() { await fetch('/api/enroll/cancel', { method: 'POST' }); closeModal() }
+  function closeModal() { document.getElementById('overlay').classList.remove('open') }
+
+  // ── Log ────────────────────────────────────────────────────────────────────
+
+  function addLog(text, cls = '') {
+    const box = document.getElementById('log'), row = document.createElement('div')
+    if (cls) row.className = cls
+    const t = new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })
+    row.textContent = `[${t}] ${text}`
+    box.appendChild(row); box.scrollTop = box.scrollHeight
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  connectWS()
+  loadSocios()
+</script>
+</body>
+</html>
